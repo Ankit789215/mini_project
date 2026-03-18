@@ -31,31 +31,30 @@ export default function PatientDetail() {
     const loadData = useCallback(async (resetMeds = false) => {
         setLoading(true);
         try {
-            const currentMedOffset = resetMeds ? 0 : medOffset;
-            const [meds, rems] = await Promise.all([
-                fetchMedicines(patientId as string, MED_LIMIT, currentMedOffset),
-                fetchReminders(patientId as string)
-            ]);
+            setMedOffset(prevOffset => {
+                const currentMedOffset = resetMeds ? 0 : prevOffset;
+                
+                Promise.all([
+                    fetchMedicines(patientId as string, MED_LIMIT, currentMedOffset),
+                    fetchReminders(patientId as string)
+                ]).then(([meds, rems]) => {
+                    setMedicines(prev => resetMeds ? meds : [...prev, ...meds]);
+                    setHasMoreMeds(meds.length === MED_LIMIT);
+                    if (!resetMeds) setMedOffset(currentMedOffset + MED_LIMIT);
+                    else setMedOffset(MED_LIMIT);
+                    setReminders(rems);
+                }).catch(e => {
+                    console.error(e);
+                    alert("Failed to fetch data.");
+                }).finally(() => setLoading(false));
 
-            if (resetMeds) {
-                setMedicines(meds);
-                setMedOffset(MED_LIMIT);
-            } else {
-                setMedicines(prev => [...prev, ...meds]);
-                setMedOffset(prev => prev + MED_LIMIT);
-            }
-
-            if (meds.length < MED_LIMIT) setHasMoreMeds(false);
-            else setHasMoreMeds(true);
-
-            setReminders(rems);
+                return currentMedOffset;
+            });
         } catch (e) {
             console.error(e);
-            alert("Failed to fetch data.");
-        } finally {
             setLoading(false);
         }
-    }, [patientId, medOffset]);
+    }, [patientId]);
 
     useEffect(() => {
         if (patientId) loadData(true);

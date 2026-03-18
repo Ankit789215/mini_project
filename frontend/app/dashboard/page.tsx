@@ -22,23 +22,32 @@ export default function DashboardOverview() {
     const loadPatients = useCallback(async (reset = false) => {
         try {
             setIsLoading(true);
-            const newOffset = reset ? 0 : offset;
-            const data = await fetchPatients(LIMIT, newOffset);
-            if (reset) {
-                setPatients(data);
-                setOffset(LIMIT);
-            } else {
-                setPatients(prev => [...prev, ...data]);
-                setOffset(prev => prev + LIMIT);
-            }
-            if (data.length < LIMIT) setHasMore(false);
-            else setHasMore(true);
+            setError(null);
+            
+            // We use the functional update pattern to get the latest offset
+            // without having 'offset' in the dependency array.
+            setOffset(prevOffset => {
+                const currentOffset = reset ? 0 : prevOffset;
+                
+                fetchPatients(LIMIT, currentOffset)
+                    .then(data => {
+                        setPatients(prev => reset ? data : [...prev, ...data]);
+                        setHasMore(data.length === LIMIT);
+                        if (!reset) setOffset(currentOffset + LIMIT);
+                        else setOffset(LIMIT);
+                    })
+                    .catch(err => {
+                        if (err instanceof Error) setError(err.message);
+                    })
+                    .finally(() => setIsLoading(false));
+
+                return currentOffset;
+            });
         } catch (err) {
             if (err instanceof Error) setError(err.message);
-        } finally {
             setIsLoading(false);
         }
-    }, [offset]);
+    }, []); 
 
     useEffect(() => {
         loadPatients(true);
