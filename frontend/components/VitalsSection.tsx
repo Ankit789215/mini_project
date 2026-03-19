@@ -28,6 +28,7 @@ export default function VitalsSection({ patientId }: Props) {
     const [measuring, setMeasuring] = useState(false);
     const [savingVitals, setSavingVitals] = useState(false);
     const [ppgProgress, setPpgProgress] = useState(0);
+    const [fingerDetected, setFingerDetected] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -54,56 +55,87 @@ export default function VitalsSection({ patientId }: Props) {
             }
             setMeasuring(true);
             setPpgProgress(0);
+            setFingerDetected(false);
 
             const samples: number[] = [];
             const DURATION = 15000;
-            const start = Date.now();
+            let measureStart: number | null = null; // Start countdown only after finger is on
+            let waitingForFinger = true;
 
             const ctx = canvasRef.current?.getContext("2d");
 
             const tick = () => {
                 if (!streamRef.current || !ctx || !videoRef.current || !canvasRef.current) return;
-                ctx.drawImage(videoRef.current, 0, 0, 10, 10);
-                const pixel = ctx.getImageData(0, 0, 10, 10).data;
-                let rTotal = 0;
-                for (let i = 0; i < pixel.length; i += 4) rTotal += pixel[i];
-                samples.push(rTotal / (pixel.length / 4));
+                
+                ctx.drawImage(videoRef.current, 0, 0, 20, 20);
+                const pixel = ctx.getImageData(0, 0, 20, 20).data;
+                
+                let rTotal = 0, gTotal = 0, bTotal = 0;
+                const count = pixel.length / 4;
+                for (let i = 0; i < pixel.length; i += 4) {
+                    rTotal += pixel[i];
+                    gTotal += pixel[i + 1];
+                    bTotal += pixel[i + 2];
+                }
+                const meanR = rTotal / count;
+                const meanG = gTotal / count;
+                const meanB = bTotal / count;
 
-                const elapsed = Date.now() - start;
+                // Finger detection: flesh over camera makes red channel dominant and bright
+                const hasFingerNow = meanR > 100 && meanR > meanG * 1.4 && meanR > meanB * 1.5;
+                setFingerDetected(hasFingerNow);
+
+                if (waitingForFinger) {
+                    if (hasFingerNow) {
+                        waitingForFinger = false;
+                        measureStart = Date.now();
+                    }
+                    requestAnimationFrame(tick);
+                    return;
+                }
+
+                // Once finger is placed, start measuring
+                samples.push(meanR);
+                const elapsed = Date.now() - (measureStart ?? Date.now());
                 setPpgProgress(Math.min(100, (elapsed / DURATION) * 100));
+
+                if (!hasFingerNow) {
+                    // Finger lifted midway — reset
+                    waitingForFinger = true;
+                    measureStart = null;
+                    samples.length = 0;
+                    setPpgProgress(0);
+                }
 
                 if (elapsed < DURATION) {
                     requestAnimationFrame(tick);
                 } else {
                     stopCamera();
-                    // Estimate BPM from red channel peaks
-                    // DURATION is 15s, so multiplier is 4 to get BPM
-                    if (samples.length > 30) {
-                        const mean = samples.reduce((a, b) => a + b) / samples.length;
+                    if (samples.length > 50) {
+                        // Smooth with a moving average of 5 frames
+                        const smoothed: number[] = [];
+                        for (let i = 2; i < samples.length - 2; i++) {
+                            smoothed.push((samples[i-2] + samples[i-1] + samples[i] + samples[i+1] + samples[i+2]) / 5);
+                        }
+                        const mean = smoothed.reduce((a, b) => a + b) / smoothed.length;
                         let peaks = 0;
-                        let lastPeakIndex = -10; // Simple debounce: min 10 frames between peaks
-                        
-                        for (let i = 1; i < samples.length - 1; i++) {
-                            // Peak is higher than neighbors and slightly above mean (sensitivity adjustment)
-                            if (samples[i] > mean && 
-                                samples[i] > samples[i - 1] && 
-                                samples[i] > samples[i + 1] &&
-                                (i - lastPeakIndex) > 10) { 
+                        let lastPeakIndex = -15;
+                        for (let i = 1; i < smoothed.length - 1; i++) {
+                            if (smoothed[i] > mean &&
+                                smoothed[i] > smoothed[i - 1] &&
+                                smoothed[i] > smoothed[i + 1] &&
+                                (i - lastPeakIndex) > 15) {
                                 peaks++;
                                 lastPeakIndex = i;
                             }
                         }
-                        
-                        // peaks / 15 seconds * 60 seconds = peaks * 4
                         const bpm = Math.round((peaks / (DURATION / 1000)) * 60);
-                        // Sensible range for PPG measurement
-                        const clampedBpm = Math.min(180, Math.max(45, bpm));
-                        setHr(clampedBpm);
+                        setHr(Math.min(180, Math.max(45, bpm)));
                     }
                 }
             };
             requestAnimationFrame(tick);
-        } catch (err) {
+        } catch {
             alert("Camera access denied or not available. Please enter heart rate manually.");
             setMeasuring(false);
         }
@@ -155,8 +187,22 @@ export default function VitalsSection({ patientId }: Props) {
                         </div>
                     </div>
                 )}
-                <video ref={videoRef} className="hidden w-1 h-1" muted playsInline />
-                <canvas ref={canvasRef} width={10} height={10} className="hidden" />
+                {/* Video MUST NOT be display:none — use visibility:hidden so canvas can draw from it */}
+                <video ref={videoRef} style={{ visibility: "hidden", position: "absolute", width: 1, height: 1 }} muted playsInline />
+                <canvas ref={canvasRef} width={20} height={20} style={{ visibility: "hidden", position: "absolute", width: 1, height: 1 }} />
+
+                {measuring && (
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium mb-2 ${
+                        fingerDetected
+                            ? "bg-green-50 text-green-700 border border-green-200"
+                            : "bg-amber-50 text-amber-700 border border-amber-200"
+                    }`}>
+                        {fingerDetected
+                            ? <><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse inline-block" /> Finger detected — hold steady...</>
+                            : <><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block" /> 👆 Place your finger firmly on the camera</>
+                        }
+                    </div>
+                )}
 
                 {/* Manual HR input */}
                 <input
