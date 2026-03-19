@@ -77,14 +77,27 @@ export default function VitalsSection({ patientId }: Props) {
                 } else {
                     stopCamera();
                     // Estimate BPM from red channel peaks
+                    // DURATION is 15s, so multiplier is 4 to get BPM
                     if (samples.length > 30) {
                         const mean = samples.reduce((a, b) => a + b) / samples.length;
                         let peaks = 0;
+                        let lastPeakIndex = -10; // Simple debounce: min 10 frames between peaks
+                        
                         for (let i = 1; i < samples.length - 1; i++) {
-                            if (samples[i] > mean * 1.02 && samples[i] > samples[i - 1] && samples[i] > samples[i + 1]) peaks++;
+                            // Peak is higher than neighbors and slightly above mean (sensitivity adjustment)
+                            if (samples[i] > mean && 
+                                samples[i] > samples[i - 1] && 
+                                samples[i] > samples[i + 1] &&
+                                (i - lastPeakIndex) > 10) { 
+                                peaks++;
+                                lastPeakIndex = i;
+                            }
                         }
-                        const bpm = Math.round((peaks / (DURATION / 1000)) * 60 * 0.25);
-                        const clampedBpm = Math.min(120, Math.max(50, bpm));
+                        
+                        // peaks / 15 seconds * 60 seconds = peaks * 4
+                        const bpm = Math.round((peaks / (DURATION / 1000)) * 60);
+                        // Sensible range for PPG measurement
+                        const clampedBpm = Math.min(180, Math.max(45, bpm));
                         setHr(clampedBpm);
                     }
                 }
