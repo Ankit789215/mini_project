@@ -89,3 +89,16 @@ def get_insurance(patient_id: str, db: Session = Depends(get_db), user=Depends(v
         "is_connected": ins.is_connected,
         "status": "Connected ✅" if ins.is_connected else "Not Connected ❌"
     }
+@router.delete("/{patient_id}", status_code=204)
+def delete_insurance(patient_id: str, db: Session = Depends(get_db), user=Depends(verify_jwt)):
+    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["user_id"]).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    ins = db.query(InsuranceDetail).filter(InsuranceDetail.patient_id == patient_id).first()
+    if not ins:
+        raise HTTPException(status_code=404, detail="Insurance record not found")
+
+    db.delete(ins)
+    db.commit()
+    return None

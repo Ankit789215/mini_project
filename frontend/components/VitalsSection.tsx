@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Heart, Footprints, Activity, Save, Camera, Loader2 } from "lucide-react";
+import { Heart, Footprints, Activity, Save, Camera, Loader2, Trash2 } from "lucide-react";
+import { deleteVital } from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -151,7 +152,18 @@ export default function VitalsSection({ patientId }: Props) {
             });
             const updated = await fetch(`${API}/vitals/${patientId}`, { headers: getHeaders() }).then(r => r.json());
             setRecords(updated);
+            setHr(null); setSteps(""); setActivity("Moderate");
         } catch { } finally { setSavingVitals(false); }
+    };
+
+    const handleDeleteRecord = async (id: string) => {
+        if (!confirm("Delete this vital record?")) return;
+        try {
+            await deleteVital(id);
+            setRecords(prev => prev.filter(r => r.id !== id));
+        } catch {
+            alert("Failed to delete record.");
+        }
     };
 
     const lastRecord = records[records.length - 1];
@@ -256,11 +268,22 @@ export default function VitalsSection({ patientId }: Props) {
                     <p className="text-sm font-medium text-slate-700 mb-2">Recent Readings</p>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                         {[...records].reverse().slice(0, 5).map(v => (
-                            <div key={v.id} className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
-                                <span>{v.heart_rate ? `❤️ ${v.heart_rate} BPM` : "—"}</span>
-                                <span>{v.steps ? `👣 ${v.steps} steps` : "—"}</span>
-                                <span className="text-slate-400">{v.activity_level}</span>
-                                <span className="text-slate-400">{v.timestamp ? new Date(v.timestamp).toLocaleDateString() : ""}</span>
+                            <div key={v.id} className="group flex items-center justify-between text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors">
+                                <div className="flex gap-3">
+                                    <span>{v.heart_rate ? `❤️ ${v.heart_rate} BPM` : "—"}</span>
+                                    <span>{v.steps ? `👣 ${v.steps} steps` : "—"}</span>
+                                    <span className="text-slate-400">{v.activity_level}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-slate-400">{v.timestamp ? new Date(v.timestamp).toLocaleDateString() : ""}</span>
+                                    <button
+                                        onClick={() => handleDeleteRecord(v.id)}
+                                        className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                        title="Delete Record"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

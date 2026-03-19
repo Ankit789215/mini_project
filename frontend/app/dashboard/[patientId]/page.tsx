@@ -181,7 +181,7 @@ export default function PatientDetail() {
                                     <h3 className="font-bold text-slate-800">{format(new Date(r.reminder_time), 'h:mm a')}</h3>
                                     <p className="text-sm text-slate-500 capitalize">{r.repeat_type} Reminder</p>
                                 </div>
-                                <button onClick={() => { deleteReminder(r.id); loadData(true, 0); }} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16} /></button>
+                                <button onClick={async () => { await deleteReminder(r.id); loadData(true, 0); }} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16} /></button>
                             </div>
                         ))}
                         {reminders.length === 0 && <p className="text-slate-400 text-sm text-center py-4 bg-white rounded-xl border border-dashed">No reminders set.</p>}

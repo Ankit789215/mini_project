@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShieldCheck, ShieldX, Building2, CreditCard, Hospital } from "lucide-react";
+import { ShieldCheck, ShieldX, Building2, CreditCard, Hospital, Trash2 } from "lucide-react";
+import { deleteInsurance } from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -40,14 +41,34 @@ export default function InsuranceSection({ patientId }: Props) {
             });
             const data = await res.json();
             setResult({ is_connected: data.is_connected, status: data.status });
+            setHasInsurance(true);
         } catch { } finally { setLoading(false); }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm("Clear all insurance information for this patient?")) return;
+        try {
+            await deleteInsurance(patientId);
+            setHasInsurance(false);
+            setForm({ insurance_company: "", policy_number: "", hospital_name: "" });
+            setResult(null);
+        } catch (err) {
+            alert("Failed to delete insurance.");
+        }
     };
 
     return (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-                <ShieldCheck className="text-blue-500" size={22} />
-                <h2 className="text-lg font-bold text-slate-800">Insurance Verification</h2>
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    <ShieldCheck className="text-blue-500" size={22} />
+                    <h2 className="text-lg font-bold text-slate-800">Insurance Verification</h2>
+                </div>
+                {hasInsurance && (
+                    <button onClick={handleDelete} className="text-slate-300 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-lg" title="Delete Insurance">
+                        <Trash2 size={16} />
+                    </button>
+                )}
             </div>
 
             <div className="flex items-center gap-3 mb-5">

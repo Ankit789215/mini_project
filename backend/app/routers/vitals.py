@@ -54,3 +54,17 @@ def get_vitals(patient_id: str, db: Session = Depends(get_db), user=Depends(veri
         }
         for v in records
     ]
+@router.delete("/{vital_id}", status_code=204)
+def delete_vital(vital_id: str, db: Session = Depends(get_db), user=Depends(verify_jwt)):
+    vital = db.query(Vital).filter(Vital.id == vital_id).first()
+    if not vital:
+        raise HTTPException(status_code=404, detail="Vital record not found")
+    
+    # Verify patient belongs to user
+    patient = db.query(Patient).filter(Patient.id == vital.patient_id, Patient.user_id == user["user_id"]).first()
+    if not patient:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this record")
+
+    db.delete(vital)
+    db.commit()
+    return None

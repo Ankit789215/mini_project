@@ -85,3 +85,15 @@ export async function deleteReminder(id: string) {
     const res = await fetch(`${API_BASE_URL}/reminders/${id}`, { method: "DELETE", headers });
     if (!res.ok) throw new Error("Failed to delete reminder");
 }
+
+export async function deleteVital(id: string) {
+    const headers = getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/vitals/${id}`, { method: "DELETE", headers });
+    if (!res.ok) throw new Error("Failed to delete vital record");
+}
+
+export async function deleteInsurance(patientId: string) {
+    const headers = getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/insurance/${patientId}`, { method: "DELETE", headers });
+    if (!res.ok) throw new Error("Failed to delete insurance record");
+}
