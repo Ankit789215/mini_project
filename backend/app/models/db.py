@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Date
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Date, Boolean, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.mysql import CHAR
 from app.database import Base
@@ -31,6 +31,9 @@ class Patient(Base):
     user = relationship("User", back_populates="patients")
     medicines = relationship("Medicine", back_populates="patient", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="patient", cascade="all, delete-orphan")
+    insurance = relationship("InsuranceDetail", back_populates="patient", uselist=False, cascade="all, delete-orphan")
+    medication_logs = relationship("MedicationLog", back_populates="patient", cascade="all, delete-orphan")
+    vitals = relationship("Vital", back_populates="patient", cascade="all, delete-orphan")
 
 class Medicine(Base):
     __tablename__ = "medicines"
@@ -55,3 +58,41 @@ class Reminder(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     patient = relationship("Patient", back_populates="reminders")
+
+class InsuranceDetail(Base):
+    __tablename__ = "insurance_details"
+
+    id = Column(CHAR(36), primary_key=True, default=generate_uuid)
+    patient_id = Column(CHAR(36), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, unique=True)
+    insurance_company = Column(String(255), nullable=False)
+    policy_number = Column(String(255), nullable=False)
+    hospital_name = Column(String(255), nullable=False)
+    is_verified = Column(Boolean, default=False)
+    is_connected = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    patient = relationship("Patient", back_populates="insurance")
+
+class MedicationLog(Base):
+    __tablename__ = "medication_logs"
+
+    id = Column(CHAR(36), primary_key=True, default=generate_uuid)
+    patient_id = Column(CHAR(36), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    medicine_name = Column(String(255), nullable=False)
+    scheduled_time = Column(DateTime, nullable=False)
+    taken = Column(Boolean, default=False)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    patient = relationship("Patient", back_populates="medication_logs")
+
+class Vital(Base):
+    __tablename__ = "vitals"
+
+    id = Column(CHAR(36), primary_key=True, default=generate_uuid)
+    patient_id = Column(CHAR(36), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    heart_rate = Column(Integer, nullable=True)
+    steps = Column(Integer, nullable=True)
+    activity_level = Column(String(50), nullable=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    patient = relationship("Patient", back_populates="vitals")

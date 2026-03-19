@@ -7,6 +7,10 @@ import { Medicine, Reminder } from "@/types/schema";
 import { Pill, Clock, AlertTriangle, CheckCircle2, ShieldAlert, Loader2, Plus, ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import InsuranceSection from "@/components/InsuranceSection";
+import OcrScanner from "@/components/OcrScanner";
+import ReportCard from "@/components/ReportCard";
+import VitalsSection from "@/components/VitalsSection";
 
 export default function PatientDetail() {
     const { patientId } = useParams();
@@ -182,6 +186,14 @@ export default function PatientDetail() {
                     </div>
                 </div>
 
+            </div>
+
+            {/* ADVANCED HEALTHCARE FEATURES */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <InsuranceSection patientId={patientId as string} />
+                <OcrScanner />
+                <ReportCard patientId={patientId as string} medicines={medicines} />
+                <VitalsSection patientId={patientId as string} />
             </div>
         </div>
     );
