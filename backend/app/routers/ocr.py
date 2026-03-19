@@ -1,31 +1,57 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from app.middleware.auth import verify_jwt
-import io
 import re
-import json
-from app.config import settings
+import traceback
+import cv2
+import numpy as np
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
 
-def parse_prescription_text(text: str) -> dict:
-    """Attempt to extract structured medicine info from raw OCR text."""
+# Lazy-initialize PaddleOCR so server doesn't crash on startup if it fails
+_ocr_engine = None
+
+def get_ocr_engine():
+    global _ocr_engine
+    if _ocr_engine is None:
+        try:
+            from paddleocr import PaddleOCR
+            _ocr_engine = PaddleOCR(use_angle_cls=True, lang='en')
+            print("PaddleOCR engine initialized successfully.")
+        except Exception as e:
+            print(f"PaddleOCR Initialization Error: {e}")
+            traceback.print_exc()
+    return _ocr_engine
+
+def extract_hospital_insurance(text: str) -> dict:
+    """Basic regex to find Hospital and Insurance names."""
+    hospital_pattern = re.compile(r'(?:Hospital|Clinic|Medical\s*Center|Health\s*Care)\b', re.I)
+    insurance_pattern = re.compile(r'(?:Insurance|Assurance|Health\s*Plan)\b', re.I)
+    lines = text.split("\n")
+    hospital, insurance = "", ""
+    for line in lines:
+        if not hospital and hospital_pattern.search(line):
+            hospital = line.strip()
+        if not insurance and insurance_pattern.search(line):
+            insurance = line.strip()
+    return {"hospital": hospital, "insurance": insurance}
+
+def parse_prescription_text(text: str) -> list:
+    """Extract structured medicine info from raw OCR text using regex."""
     lines = [l.strip() for l in text.split("\n") if l.strip()]
     medicines = []
     dosage_pattern = re.compile(r'\d+\s*mg|\d+\s*ml|\d+\s*mcg', re.I)
     freq_keywords = ["once", "twice", "daily", "bd", "tds", "od", "hs", "morning", "evening", "night", "qid"]
-
     for line in lines:
         has_dosage = bool(dosage_pattern.search(line))
         has_freq = any(kw in line.lower() for kw in freq_keywords)
         if has_dosage or has_freq:
             dosage_match = dosage_pattern.search(line)
             medicines.append({
-                "raw_line": line,
-                "dosage": dosage_match.group(0) if dosage_match else None,
-                "frequency": next((kw for kw in freq_keywords if kw in line.lower()), None),
+                "name": line,
+                "dosage": dosage_match.group(0) if dosage_match else "",
+                "frequency": next((kw for kw in freq_keywords if kw in line.lower()), ""),
             })
-
-    return {"extracted_medicines": medicines, "total_lines": len(lines)}
+    return medicines
 
 @router.post("/prescription")
 async def ocr_prescription(file: UploadFile = File(...), user=Depends(verify_jwt)):
@@ -33,102 +59,62 @@ async def ocr_prescription(file: UploadFile = File(...), user=Depends(verify_jwt
         raise HTTPException(status_code=400, detail="File must be an image")
 
     contents = await file.read()
+    raw_lines = []
+    error_detail = None
 
     try:
-        import cv2
-        import numpy as np
-        import pytesseract
-        from PIL import Image
-        from groq import Groq
+        engine = get_ocr_engine()
+        if engine is None:
+            error_detail = "PaddleOCR engine could not be initialized. Try restarting the server."
+            raise RuntimeError(error_detail)
 
-        # Load image from bytes
         np_arr = np.frombuffer(contents, np.uint8)
         img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        # Preprocessing pipeline
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        denoised = cv2.fastNlMeansDenoising(gray, h=30)
-        _, thresh = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
-        cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+        if img is None:
+            error_detail = "Failed to decode image. Please upload a valid JPG, PNG, or WEBP."
+            raise ValueError(error_detail)
 
-        # 1. Standard OCR
-        pil_img = Image.fromarray(cleaned)
-        raw_text = pytesseract.image_to_string(pil_img, config="--psm 6")
+        result = engine.ocr(img, cls=True)
+        print(f"PaddleOCR result: {result}")
 
-        # 2. Mandatory LLM Extraction
-        if settings.groq_api:
-            try:
-                client = Groq(api_key=settings.groq_api)
-                prompt = f"""
-                Extract a structured list of medicines from this prescription text.
-                For each medicine, identify:
-                - Name (Medicine name)
-                - Dosage (e.g., 500mg)
-                - Frequency (Daily, Twice a day, etc.)
+        if result and result[0]:
+            for res in result:
+                if res:
+                    for line in res:
+                        if line and len(line) > 1 and line[1]:
+                            raw_lines.append(str(line[1][0]))
 
-                Text:
-                {raw_text}
-
-                Return ONLY a JSON object with a "medicines" list. 
-                Example: {{"medicines": [{{"raw_line": "Paracetamol", "dosage": "500mg", "frequency": "twice daily"}}]}}
-                If no medicines found, return {{"medicines": []}}.
-                """
-                completion = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
-                llm_data = json.loads(completion.choices[0].message.content)
-                parsed_meds = llm_data.get("medicines", [])
-                
-                return {
-                    "success": True,
-                    "raw_text": raw_text,
-                    "parsed": {
-                        "extracted_medicines": parsed_meds,
-                        "method": "llm_extraction",
-                        "total_lines": len(raw_text.split("\n"))
-                    }
-                }
-            except Exception as llm_err:
-                # Basic regex fallback if LLM fails
-                regex_parsed = parse_prescription_text(raw_text)
-                return {
-                    "success": True,
-                    "raw_text": raw_text,
-                    "parsed": {
-                        **regex_parsed,
-                        "method": "regex_fallback_llm_failed",
-                        "error": str(llm_err)
-                    }
-                }
-        else:
-            # No LLM configured, use regex
-            return {
-                "success": True,
-                "raw_text": raw_text,
-                "parsed": {**parse_prescription_text(raw_text), "method": "regex_only"}
-            }
+        print(f"Extracted {len(raw_lines)} text lines.")
 
     except Exception as e:
-        # Fallback to LLM even if OCR fails completely (e.g. Tesseract not installed)
-        if settings.groq_api:
-             try:
-                from groq import Groq
-                client = Groq(api_key=settings.groq_api)
-                # Since we don't have text, we can't do much without a vision model,
-                # but we can at least return a structured empty response or try to explain.
-                # However, the user said "after scanning the ocr llm should be the fall back".
-                # If Tesseract fails, we might still want to try LLM if we have some raw text from other sources.
-                # But here 'raw_text' is not available. 
-                return {
-                    "success": False,
-                    "error": str(e),
-                    "raw_text": "",
-                    "parsed": {"extracted_medicines": [], "total_lines": 0, "method": "fail_no_ocr"}
-                }
-             except:
-                 pass
-        
-        raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
+        print(f"OCR Error: {e}")
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": error_detail or str(e),
+            "raw_text": [],
+            "combined_text": "",
+            "parsed": {
+                "extracted_medicines": [],
+                "hospital": "",
+                "insurance": "",
+                "method": "failed"
+            }
+        }
+
+    combined_text = "\n".join(raw_lines)
+    medicines = parse_prescription_text(combined_text)
+    info = extract_hospital_insurance(combined_text)
+
+    return {
+        "success": True,
+        "raw_text": raw_lines,
+        "combined_text": combined_text,
+        "parsed": {
+            "extracted_medicines": medicines,
+            "hospital": info["hospital"],
+            "insurance": info["insurance"],
+            "method": "paddle_ocr"
+        }
+    }

@@ -63,27 +63,29 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
                 body: formData
             });
             const data = await res.json();
+            console.log("OCR RESPONSE DATA:", data);
             if (data.success) {
-                setRawText(data.raw_text);
-                setEditedText(data.raw_text);
+                const combinedText = data.combined_text || (Array.isArray(data.raw_text) ? data.raw_text.join("\n") : data.raw_text) || "";
+                setRawText(combinedText);
+                setEditedText(combinedText);
+                
                 // Build editable medicine rows from parsed results
                 const meds: DetectedMed[] = (data.parsed?.extracted_medicines ?? []).map((m: any) => ({
-                    name: m.name || m.raw_line?.trim() || "",
+                    name: m.name || m.raw_line || "",
                     dosage: m.dosage || "",
                     frequency: m.frequency || "",
                     expiry_date: ""
                 }));
+                
                 // Also add a blank row if nothing detected so user can manually add
                 if (meds.length === 0) {
                     meds.push({ name: "", dosage: "", frequency: "", expiry_date: "" });
                 }
                 setDetectedMeds(meds);
                 setDone(true);
-                onExtracted?.(data.raw_text);
+                onExtracted?.(combinedText);
             } else {
-                setError(data.error === "tesseract_not_installed"
-                    ? "Tesseract OCR is not installed. Please install it from https://github.com/UB-Mannheim/tesseract/wiki"
-                    : data.raw_text);
+                setError(data.error || "OCR failed. Please check if Tesseract/PaddleOCR is working.");
             }
         } catch {
             setError("Failed to process image. Please try again.");

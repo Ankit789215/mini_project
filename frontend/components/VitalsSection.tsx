@@ -83,7 +83,8 @@ export default function VitalsSection({ patientId }: Props) {
                 const meanB = bTotal / count;
 
                 // Finger detection: flesh over camera makes red channel dominant and bright
-                const hasFingerNow = meanR > 100 && meanR > meanG * 1.4 && meanR > meanB * 1.5;
+                // Relaxed threshold to detect finger more easily in various lighting conditions
+                const hasFingerNow = meanR > 60 && meanR > meanG * 1.2 && meanR > meanB * 1.3;
                 setFingerDetected(hasFingerNow);
 
                 if (waitingForFinger) {
@@ -113,25 +114,44 @@ export default function VitalsSection({ patientId }: Props) {
                 } else {
                     stopCamera();
                     if (samples.length > 50) {
-                        // Smooth with a moving average of 5 frames
+                        // Estimate actual capture frame rate
+                        const fps = samples.length / (DURATION / 1000);
+                        // Min frames between peaks = ~0.4s at actual fps (avoids counting noise)
+                        const minPeakGap = Math.max(4, Math.round(fps * 0.4));
+
+                        // Smooth with a moving average of 7 frames
                         const smoothed: number[] = [];
-                        for (let i = 2; i < samples.length - 2; i++) {
-                            smoothed.push((samples[i-2] + samples[i-1] + samples[i] + samples[i+1] + samples[i+2]) / 5);
+                        for (let i = 3; i < samples.length - 3; i++) {
+                            smoothed.push(
+                                (samples[i-3] + samples[i-2] + samples[i-1] + samples[i] +
+                                 samples[i+1] + samples[i+2] + samples[i+3]) / 7
+                            );
                         }
                         const mean = smoothed.reduce((a, b) => a + b) / smoothed.length;
+                        // Only count peaks that are significantly above mean
+                        const threshold = mean * 1.005;
                         let peaks = 0;
-                        let lastPeakIndex = -15;
+                        let lastPeakIndex = -minPeakGap;
                         for (let i = 1; i < smoothed.length - 1; i++) {
-                            if (smoothed[i] > mean &&
+                            if (smoothed[i] > threshold &&
                                 smoothed[i] > smoothed[i - 1] &&
                                 smoothed[i] > smoothed[i + 1] &&
-                                (i - lastPeakIndex) > 15) {
+                                (i - lastPeakIndex) > minPeakGap) {
                                 peaks++;
                                 lastPeakIndex = i;
                             }
                         }
                         const bpm = Math.round((peaks / (DURATION / 1000)) * 60);
-                        setHr(Math.min(180, Math.max(45, bpm)));
+                        console.log(`BPM calculation: peaks=${peaks}, fps=${fps.toFixed(1)}, bpm=${bpm}`);
+                        // Only accept readings in a realistic human heart rate range
+                        if (bpm >= 40 && bpm <= 200) {
+                            setHr(bpm);
+                        } else {
+                            // Unrealistic result — bad finger placement
+                            alert(`Reading of ${bpm} BPM is outside the expected range. Please ensure your finger fully covers the camera and try again.`);
+                        }
+                    } else {
+                        alert("Not enough data collected. Please keep your finger on the camera for the full 15 seconds.");
                     }
                 }
             };
