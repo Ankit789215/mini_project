@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ClipboardList, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { ClipboardList, CheckCircle2, XCircle, RefreshCw, Sparkles, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -29,6 +29,8 @@ export default function ReportCard({ patientId, medicines }: Props) {
     const [report, setReport] = useState<Report | null>(null);
     const [loading, setLoading] = useState(false);
     const [logLoading, setLogLoading] = useState<string | null>(null);
+    const [aiReport, setAiReport] = useState("");
+    const [aiLoading, setAiLoading] = useState(false);
 
     const fetchReport = async () => {
         setLoading(true);
@@ -40,6 +42,29 @@ export default function ReportCard({ patientId, medicines }: Props) {
     };
 
     useEffect(() => { fetchReport(); }, [patientId]);
+
+    const generateAiReport = async () => {
+        setAiLoading(true);
+        setAiReport("");
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API}/report/ai-summary/${patientId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok || !res.body) throw new Error("Failed");
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                setAiReport(prev => prev + decoder.decode(value));
+            }
+        } catch {
+            setAiReport("Failed to generate AI report. Please try again.");
+        } finally {
+            setAiLoading(false);
+        }
+    };
 
     const logDose = async (medicineName: string, taken: boolean) => {
         setLogLoading(medicineName);
@@ -131,6 +156,31 @@ export default function ReportCard({ patientId, medicines }: Props) {
                     ))}
                     {medicines.length === 0 && <p className="text-xs text-slate-400">Add medicines to track adherence.</p>}
                 </div>
+            </div>
+
+            {/* AI Weekly Report */}
+            <div className="mt-4 pt-4 border-t border-slate-100">
+                <button
+                    onClick={generateAiReport}
+                    disabled={aiLoading}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-300 text-white font-medium rounded-lg transition-all text-sm"
+                >
+                    {aiLoading
+                        ? <><Loader2 size={15} className="animate-spin" />Generating AI Report...</>
+                        : <><Sparkles size={15} />Generate AI Weekly Report</>}
+                </button>
+
+                {aiReport && (
+                    <div className="mt-3 p-4 bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-xl">
+                        <div className="flex items-center gap-1.5 mb-2">
+                            <Sparkles size={14} className="text-violet-600" />
+                            <span className="text-xs font-bold text-violet-700 uppercase tracking-wide">AI Health Report · llama-3.1-8b</span>
+                        </div>
+                        <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
+                            {aiReport}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
