@@ -17,7 +17,7 @@ class VitalCreate(BaseModel):
 
 @router.post("")
 def save_vitals(data: VitalCreate, db: Session = Depends(get_db), user=Depends(verify_jwt)):
-    patient = db.query(Patient).filter(Patient.id == data.patient_id, Patient.user_id == user["sub"]).first()
+    patient = db.query(Patient).filter(Patient.id == data.patient_id, Patient.user_id == user["user_id"]).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
@@ -34,7 +34,7 @@ def save_vitals(data: VitalCreate, db: Session = Depends(get_db), user=Depends(v
 
 @router.get("/{patient_id}")
 def get_vitals(patient_id: str, db: Session = Depends(get_db), user=Depends(verify_jwt)):
-    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["sub"]).first()
+    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["user_id"]).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 

@@ -52,53 +52,64 @@ async def ocr_prescription(file: UploadFile = File(...), user=Depends(verify_jwt
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
         cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
-        # OCR
+        # 1. Standard OCR
         pil_img = Image.fromarray(cleaned)
         raw_text = pytesseract.image_to_string(pil_img, config="--psm 6")
 
-        parsed = parse_prescription_text(raw_text)
-
-        # FALLBACK TO LLM if OCR not extracts useful data
-        if not parsed["extracted_medicines"] and settings.groq_api:
+        # 2. Mandatory LLM Extraction
+        if settings.groq_api:
             try:
                 client = Groq(api_key=settings.groq_api)
                 prompt = f"""
-                Analyze the following raw OCR text from a medical prescription and extract a list of medicines.
-                For each medicine, extract:
-                - Name
-                - Dosage (e.g., 500mg, 10ml)
-                - Frequency (e.g., twice daily, morning, OD, BD)
+                Extract a structured list of medicines from this prescription text.
+                For each medicine, identify:
+                - Name (Medicine name)
+                - Dosage (e.g., 500mg)
+                - Frequency (Daily, Twice a day, etc.)
 
-                OCR TEXT:
+                Text:
                 {raw_text}
 
-                Return ONLY a JSON object with the key "medicines" which is a list of objects with keys "raw_line", "dosage", and "frequency".
-                If no medicines are found, return {{"medicines": []}}.
+                Return ONLY a JSON object with a "medicines" list. 
+                Example: {{"medicines": [{{"raw_line": "Paracetamol", "dosage": "500mg", "frequency": "twice daily"}}]}}
+                If no medicines found, return {{"medicines": []}}.
                 """
-                
                 completion = client.chat.completions.create(
                     model="llama-3.1-8b-instant",
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"}
                 )
-                
                 llm_data = json.loads(completion.choices[0].message.content)
-                if llm_data.get("medicines"):
-                    parsed["extracted_medicines"] = llm_data["medicines"]
-                    parsed["method"] = "llm_fallback"
-                else:
-                    parsed["method"] = "ocr_only_no_meds"
+                parsed_meds = llm_data.get("medicines", [])
+                
+                return {
+                    "success": True,
+                    "raw_text": raw_text,
+                    "parsed": {
+                        "extracted_medicines": parsed_meds,
+                        "method": "llm_extraction",
+                        "total_lines": len(raw_text.split("\n"))
+                    }
+                }
             except Exception as llm_err:
-                parsed["llm_error"] = str(llm_err)
-                parsed["method"] = "ocr_only_llm_failed"
+                # Basic regex fallback if LLM fails
+                regex_parsed = parse_prescription_text(raw_text)
+                return {
+                    "success": True,
+                    "raw_text": raw_text,
+                    "parsed": {
+                        **regex_parsed,
+                        "method": "regex_fallback_llm_failed",
+                        "error": str(llm_err)
+                    }
+                }
         else:
-            parsed["method"] = "ocr_primary"
-
-        return {
-            "success": True,
-            "raw_text": raw_text,
-            "parsed": parsed
-        }
+            # No LLM configured, use regex
+            return {
+                "success": True,
+                "raw_text": raw_text,
+                "parsed": {**parse_prescription_text(raw_text), "method": "regex_only"}
+            }
 
     except Exception as e:
         # Fallback to LLM even if OCR fails completely (e.g. Tesseract not installed)

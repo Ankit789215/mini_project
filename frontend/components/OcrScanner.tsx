@@ -68,7 +68,7 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
                 setEditedText(data.raw_text);
                 // Build editable medicine rows from parsed results
                 const meds: DetectedMed[] = (data.parsed?.extracted_medicines ?? []).map((m: any) => ({
-                    name: m.raw_line?.trim() || "",
+                    name: m.name || m.raw_line?.trim() || "",
                     dosage: m.dosage || "",
                     frequency: m.frequency || "",
                     expiry_date: ""
@@ -238,12 +238,15 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
                                             value={med.frequency}
                                             onChange={e => updateMed(i, "frequency", e.target.value)}
                                         />
-                                        <input
-                                            type="date"
-                                            className="px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-2 focus:ring-violet-500 outline-none bg-white text-slate-500"
-                                            value={med.expiry_date}
-                                            onChange={e => updateMed(i, "expiry_date", e.target.value)}
-                                        />
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[10px] text-slate-400 font-medium px-1">Expiry Date (Optional)</label>
+                                            <input
+                                                type="date"
+                                                className="px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-2 focus:ring-violet-500 outline-none bg-white text-slate-500"
+                                                value={med.expiry_date}
+                                                onChange={e => updateMed(i, "expiry_date", e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             ))}

@@ -38,7 +38,7 @@ class InsuranceCreate(BaseModel):
 @router.post("")
 def save_insurance(data: InsuranceCreate, db: Session = Depends(get_db), user=Depends(verify_jwt)):
     # Verify patient belongs to user
-    patient = db.query(Patient).filter(Patient.id == data.patient_id, Patient.user_id == user["sub"]).first()
+    patient = db.query(Patient).filter(Patient.id == data.patient_id, Patient.user_id == user["user_id"]).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
@@ -73,7 +73,7 @@ def save_insurance(data: InsuranceCreate, db: Session = Depends(get_db), user=De
 
 @router.get("/{patient_id}")
 def get_insurance(patient_id: str, db: Session = Depends(get_db), user=Depends(verify_jwt)):
-    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["sub"]).first()
+    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["user_id"]).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 

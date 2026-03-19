@@ -18,7 +18,7 @@ class LogCreate(BaseModel):
 
 @router.post("/log")
 def log_dose(data: LogCreate, db: Session = Depends(get_db), user=Depends(verify_jwt)):
-    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["user_id"]).first()
+    patient = db.query(Patient).filter(Patient.id == data.patient_id, Patient.user_id == user["user_id"]).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
