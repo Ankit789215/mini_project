@@ -72,15 +72,15 @@ export default function PatientDetail() {
         e.preventDefault();
         if (!remTime) return;
         try {
-            // Append today's date to make it a valid ISO if it's just a time string
-            // A more robust app would use a true datetime picker
-            const fakeDate = new Date();
-            const [hours, mins] = remTime.split(":");
-            fakeDate.setHours(parseInt(hours), parseInt(mins), 0);
+            // Build a local datetime string like "2026-03-19T15:03:00"
+            // Avoid .toISOString() which converts to UTC and shifts the time
+            const today = new Date();
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const localDatetime = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}T${remTime}:00`;
 
             await createReminder({
                 patient_id: patientId as string,
-                reminder_time: fakeDate.toISOString(),
+                reminder_time: localDatetime,
                 repeat_type: remRepeat
             });
             setRemTime(""); setRemRepeat("daily");

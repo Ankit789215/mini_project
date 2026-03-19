@@ -3,14 +3,18 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.db import User
 from pydantic import BaseModel
-from passlib.context import CryptContext
+import bcrypt
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 class AuthRequest(BaseModel):
     email: str
@@ -28,7 +32,7 @@ def register(user_data: AuthRequest, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    hashed_pw = pwd_context.hash(user_data.password)
+    hashed_pw = hash_password(user_data.password)
     new_user = User(email=user_data.email, hashed_password=hashed_pw)
     db.add(new_user)
     db.commit()
@@ -40,7 +44,7 @@ def register(user_data: AuthRequest, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(user_data: AuthRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_data.email).first()
-    if not user or not pwd_context.verify(user_data.password, user.hashed_password):
+    if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     token = create_access_token({"sub": user.id, "email": user.email}, timedelta(minutes=60*24*7))
