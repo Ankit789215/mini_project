@@ -11,6 +11,7 @@ import InsuranceSection from "@/components/InsuranceSection";
 import OcrScanner from "@/components/OcrScanner";
 import ReportCard from "@/components/ReportCard";
 import VitalsSection from "@/components/VitalsSection";
+import NotificationHandler from "@/components/NotificationHandler";
 
 export default function PatientDetail() {
     const { patientId } = useParams();
@@ -103,6 +104,7 @@ export default function PatientDetail() {
 
     return (
         <div className="space-y-8">
+            <NotificationHandler medicines={medicines} reminders={reminders} />
             <div className="flex items-center gap-4">
                 <Link href="/dashboard" className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
                     <ArrowLeft size={20} className="text-slate-600" />
@@ -191,7 +193,7 @@ export default function PatientDetail() {
             {/* ADVANCED HEALTHCARE FEATURES */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <InsuranceSection patientId={patientId as string} />
-                <OcrScanner />
+                <OcrScanner patientId={patientId as string} onMedicinesAdded={() => loadData(true, 0)} />
                 <ReportCard patientId={patientId as string} medicines={medicines} />
                 <VitalsSection patientId={patientId as string} />
             </div>
