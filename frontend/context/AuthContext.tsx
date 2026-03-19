@@ -1,48 +1,43 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
+
+export interface User {
+    id: string;
+    email: string;
+}
 
 interface AuthContextType {
     user: User | null;
-    session: Session | null;
     isLoading: boolean;
-    signOut: () => Promise<void>;
+    signIn: (token: string, user: User) => void;
+    signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
-    const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const supabase = createClient();
     const router = useRouter();
     const pathname = usePathname();
 
     useEffect(() => {
-        // Initial fetch
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            setIsLoading(false);
-        });
-
-        // Listen for auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            setIsLoading(false);
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
+        const token = localStorage.getItem("token");
+        const storedUser = localStorage.getItem("user");
+        
+        if (token && storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+            }
+        }
+        setIsLoading(false);
     }, []);
 
-    // Simple route protection
     useEffect(() => {
         if (!isLoading) {
             if (!user && pathname !== "/auth" && pathname !== "/") {
@@ -53,13 +48,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user, isLoading, pathname, router]);
 
-    const signOut = async () => {
-        await supabase.auth.signOut();
+    const signIn = (token: string, user_data: User) => {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user_data));
+        setUser(user_data);
+    };
+
+    const signOut = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
         router.push("/auth");
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
+        <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
             {children}
         </AuthContext.Provider>
     );

@@ -28,36 +28,28 @@ export default function PatientDetail() {
     const [remTime, setRemTime] = useState("");
     const [remRepeat, setRemRepeat] = useState("daily");
 
-    const loadData = useCallback(async (resetMeds = false) => {
+    const loadData = useCallback(async (resetMeds = false, currentMedOffset = 0) => {
         setLoading(true);
         try {
-            setMedOffset(prevOffset => {
-                const currentMedOffset = resetMeds ? 0 : prevOffset;
-                
-                Promise.all([
-                    fetchMedicines(patientId as string, MED_LIMIT, currentMedOffset),
-                    fetchReminders(patientId as string)
-                ]).then(([meds, rems]) => {
-                    setMedicines(prev => resetMeds ? meds : [...prev, ...meds]);
-                    setHasMoreMeds(meds.length === MED_LIMIT);
-                    if (!resetMeds) setMedOffset(currentMedOffset + MED_LIMIT);
-                    else setMedOffset(MED_LIMIT);
-                    setReminders(rems);
-                }).catch(e => {
-                    console.error(e);
-                    alert("Failed to fetch data.");
-                }).finally(() => setLoading(false));
-
-                return currentMedOffset;
-            });
+            const reqOffset = resetMeds ? 0 : currentMedOffset;
+            const [meds, rems] = await Promise.all([
+                fetchMedicines(patientId as string, MED_LIMIT, reqOffset),
+                fetchReminders(patientId as string)
+            ]);
+            setMedicines(prev => resetMeds ? meds : [...prev, ...meds]);
+            setHasMoreMeds(meds.length === MED_LIMIT);
+            setMedOffset(reqOffset + meds.length);
+            setReminders(rems);
         } catch (e) {
             console.error(e);
+            alert("Failed to fetch data.");
+        } finally {
             setLoading(false);
         }
     }, [patientId]);
 
     useEffect(() => {
-        if (patientId) loadData(true);
+        if (patientId) loadData(true, 0);
     }, [patientId, loadData]);
 
     const handleAddMed = async (e: React.FormEvent) => {
@@ -72,7 +64,7 @@ export default function PatientDetail() {
                 expiry_date: medExpiry || undefined
             });
             setMedName(""); setMedDosage(""); setMedFreq(""); setMedExpiry("");
-            loadData(true);
+            loadData(true, 0);
         } catch { }
     };
 
@@ -92,7 +84,7 @@ export default function PatientDetail() {
                 repeat_type: remRepeat
             });
             setRemTime(""); setRemRepeat("daily");
-            loadData();
+            loadData(true, 0);
         } catch { }
     };
 
@@ -142,12 +134,12 @@ export default function PatientDetail() {
                                     <p className="text-sm text-slate-500">{m.dosage} • {m.frequency}</p>
                                     <div className="mt-1"><ExpiryBadge days={m.days_to_expiry} /></div>
                                 </div>
-                                <button onClick={async () => { await deleteMedicine(m.id); loadData(true); }} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16} /></button>
+                                <button onClick={async () => { await deleteMedicine(m.id); loadData(true, 0); }} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16} /></button>
                             </div>
                         ))}
                         {hasMoreMeds && medicines.length > 0 && !loading && (
                             <button
-                                onClick={() => loadData()}
+                                onClick={() => loadData(false, medOffset)}
                                 className="w-full py-2 text-sm text-slate-500 hover:text-emerald-600 transition font-medium"
                             >
                                 Load More Medications
@@ -183,7 +175,7 @@ export default function PatientDetail() {
                                     <h3 className="font-bold text-slate-800">{format(new Date(r.reminder_time), 'h:mm a')}</h3>
                                     <p className="text-sm text-slate-500 capitalize">{r.repeat_type} Reminder</p>
                                 </div>
-                                <button onClick={() => { deleteReminder(r.id); loadData(); }} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16} /></button>
+                                <button onClick={() => { deleteReminder(r.id); loadData(true, 0); }} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={16} /></button>
                             </div>
                         ))}
                         {reminders.length === 0 && <p className="text-slate-400 text-sm text-center py-4 bg-white rounded-xl border border-dashed">No reminders set.</p>}

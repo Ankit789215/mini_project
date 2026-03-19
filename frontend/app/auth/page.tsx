@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase";
 import { HeartPulse, Loader2, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AuthPage() {
     const [isLogin, setIsLogin] = useState(true);
@@ -12,26 +12,40 @@ export default function AuthPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
-    const supabase = createClient();
     const router = useRouter();
+    const { signIn } = useAuth();
+    
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
-        let result;
-        if (isLogin) {
-            result = await supabase.auth.signInWithPassword({ email, password });
-        } else {
-            result = await supabase.auth.signUp({ email, password });
-        }
+        try {
+            const endpoint = isLogin ? "/auth/login" : "/auth/register";
+            const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ email, password })
+            });
 
-        if (result.error) {
-            setError(result.error.message);
-            setLoading(false);
-        } else {
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.detail || "Authentication failed");
+                setLoading(false);
+                return;
+            }
+
+            // Successful authentication
+            signIn(data.access_token, { id: data.user_id, email });
             router.push("/dashboard");
+        } catch (err: any) {
+            setError(err.message || "An unexpected error occurred");
+            setLoading(false);
         }
     };
 
@@ -49,6 +63,7 @@ export default function AuthPage() {
                 <div className="flex p-1 bg-slate-100 rounded-lg mb-8">
                     <button
                         onClick={() => setIsLogin(true)}
+                        type="button"
                         className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${isLogin ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
                             }`}
                     >
@@ -56,6 +71,7 @@ export default function AuthPage() {
                     </button>
                     <button
                         onClick={() => setIsLogin(false)}
+                        type="button"
                         className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${!isLogin ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
                             }`}
                     >
@@ -112,12 +128,6 @@ export default function AuthPage() {
                         {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? "Sign In" : "Create Account")}
                     </button>
                 </form>
-
-                {!isLogin && (
-                    <p className="text-center text-xs text-slate-500 mt-6 px-4">
-                        <b>Note:</b> Supabase rate limits new signups (3/hr) on free tiers. If you hit a limit, disable email confirmations in your Supabase Auth dashboard.
-                    </p>
-                )}
             </div>
         </div>
     );

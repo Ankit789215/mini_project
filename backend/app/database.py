@@ -1,11 +1,23 @@
 """
-Supabase client singleton for FastAPI
-Uses the Service Role Key to bypass RLS securely on the server
+SQLAlchemy Database Setup
 """
-from supabase import create_client, Client
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 
-def get_supabase() -> Client:
-    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+engine = create_engine(
+    settings.MYSQL_DATABASE_URL,
+    pool_pre_ping=True,
+    echo=False
+)
 
-supabase: Client = get_supabase()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

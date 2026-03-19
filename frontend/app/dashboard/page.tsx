@@ -19,38 +19,26 @@ export default function DashboardOverview() {
     const [newAge, setNewAge] = useState("");
     const [newRelation, setNewRelation] = useState("");
 
-    const loadPatients = useCallback(async (reset = false) => {
+    const loadPatients = useCallback(async (reset = false, currentOffset = 0) => {
         try {
             setIsLoading(true);
             setError(null);
             
-            // We use the functional update pattern to get the latest offset
-            // without having 'offset' in the dependency array.
-            setOffset(prevOffset => {
-                const currentOffset = reset ? 0 : prevOffset;
-                
-                fetchPatients(LIMIT, currentOffset)
-                    .then(data => {
-                        setPatients(prev => reset ? data : [...prev, ...data]);
-                        setHasMore(data.length === LIMIT);
-                        if (!reset) setOffset(currentOffset + LIMIT);
-                        else setOffset(LIMIT);
-                    })
-                    .catch(err => {
-                        if (err instanceof Error) setError(err.message);
-                    })
-                    .finally(() => setIsLoading(false));
-
-                return currentOffset;
-            });
+            const reqOffset = reset ? 0 : currentOffset;
+            const data = await fetchPatients(LIMIT, reqOffset);
+            
+            setPatients(prev => reset ? data : [...prev, ...data]);
+            setHasMore(data.length === LIMIT);
+            setOffset(reqOffset + data.length);
         } catch (err) {
             if (err instanceof Error) setError(err.message);
+        } finally {
             setIsLoading(false);
         }
-    }, []); 
+    }, []);
 
     useEffect(() => {
-        loadPatients(true);
+        loadPatients(true, 0);
     }, [loadPatients]);
 
     const handleAdd = async (e: React.FormEvent) => {
@@ -67,7 +55,7 @@ export default function DashboardOverview() {
             setNewAge("");
             setNewRelation("");
             setIsAdding(false);
-            loadPatients(true);
+            loadPatients(true, 0);
         } catch (err) {
             if (err instanceof Error) setError(err.message);
         }
@@ -78,7 +66,7 @@ export default function DashboardOverview() {
         if (!confirm("Delete this patient and all their meds/reminders?")) return;
         try {
             await deletePatient(id);
-            loadPatients(true);
+            loadPatients(true, 0);
         } catch (err) {
             if (err instanceof Error) setError(err.message);
         }
@@ -198,7 +186,7 @@ export default function DashboardOverview() {
             {hasMore && patients.length > 0 && !isLoading && (
                 <div className="flex justify-center pt-4">
                     <button
-                        onClick={() => loadPatients()}
+                        onClick={() => loadPatients(false, offset)}
                         className="px-6 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50 transition"
                     >
                         Load More Members

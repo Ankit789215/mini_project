@@ -2,13 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
-from app.routers import patients, medicines, reminders
+from app.routers import patients, medicines, reminders, auth
 
 app = FastAPI(
     title="Family Health & Medication Manager",
     description="API for managing family patient profiles, medications, and reminders.",
     version="1.0.0"
 )
+# Force reload - trigger 401 debug
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(patients.router)
 app.include_router(medicines.router)
 app.include_router(reminders.router)
