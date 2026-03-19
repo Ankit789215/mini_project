@@ -25,7 +25,8 @@ def create_patient(body: PatientCreate, user: dict = Depends(verify_jwt), db: Se
             user_id=user["user_id"],
             patient_name=body.patient_name,
             age=body.age,
-            relation=body.relation
+            relation=body.relation,
+            email=body.email
         )
         db.add(new_patient)
         db.commit()

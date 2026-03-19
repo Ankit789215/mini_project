@@ -34,6 +34,7 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
     const [error, setError] = useState("");
     const [dragging, setDragging] = useState(false);
     const [addedCount, setAddedCount] = useState(0);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
     const processFile = async (file: File) => {
@@ -46,6 +47,11 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
         setError("");
         setDetectedMeds([]);
         setAddedCount(0);
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onloadend = () => setPreviewUrl(reader.result as string);
+        reader.readAsDataURL(file);
 
         const formData = new FormData();
         formData.append("file", file);
@@ -175,6 +181,21 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
 
             {done && (
                 <div className="space-y-4">
+                    {/* Image Preview */}
+                    {previewUrl && (
+                        <div className="relative group">
+                            <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Scanned Prescription</p>
+                            <div className="relative h-48 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                                <img 
+                                    src={previewUrl} 
+                                    className="h-full w-full object-contain" 
+                                    alt="Prescription preview" 
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Raw text */}
                     <div>
                         <div className="flex items-center gap-1 text-sm font-medium text-slate-700 mb-1">

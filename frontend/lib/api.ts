@@ -21,7 +21,7 @@ export async function fetchPatients(limit: number = 20, offset: number = 0) {
     return res.json();
 }
 
-export async function createPatient(data: { patient_name: string; age?: number; relation?: string }) {
+export async function createPatient(data: { patient_name: string; age?: number; relation?: string; email?: string }) {
     const headers = getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/patients`, {
         method: "POST",

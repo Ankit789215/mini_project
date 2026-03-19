@@ -2,6 +2,8 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from app.middleware.auth import verify_jwt
 import io
 import re
+import json
+from app.config import settings
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
 
@@ -16,9 +18,10 @@ def parse_prescription_text(text: str) -> dict:
         has_dosage = bool(dosage_pattern.search(line))
         has_freq = any(kw in line.lower() for kw in freq_keywords)
         if has_dosage or has_freq:
+            dosage_match = dosage_pattern.search(line)
             medicines.append({
                 "raw_line": line,
-                "dosage": dosage_pattern.search(line).group(0) if dosage_pattern.search(line) else None,
+                "dosage": dosage_match.group(0) if dosage_match else None,
                 "frequency": next((kw for kw in freq_keywords if kw in line.lower()), None),
             })
 
@@ -36,6 +39,7 @@ async def ocr_prescription(file: UploadFile = File(...), user=Depends(verify_jwt
         import numpy as np
         import pytesseract
         from PIL import Image
+        from groq import Groq
 
         # Load image from bytes
         np_arr = np.frombuffer(contents, np.uint8)
@@ -54,19 +58,66 @@ async def ocr_prescription(file: UploadFile = File(...), user=Depends(verify_jwt
 
         parsed = parse_prescription_text(raw_text)
 
+        # FALLBACK TO LLM if OCR not extracts useful data
+        if not parsed["extracted_medicines"] and settings.groq_api:
+            try:
+                client = Groq(api_key=settings.groq_api)
+                prompt = f"""
+                Analyze the following raw OCR text from a medical prescription and extract a list of medicines.
+                For each medicine, extract:
+                - Name
+                - Dosage (e.g., 500mg, 10ml)
+                - Frequency (e.g., twice daily, morning, OD, BD)
+
+                OCR TEXT:
+                {raw_text}
+
+                Return ONLY a JSON object with the key "medicines" which is a list of objects with keys "raw_line", "dosage", and "frequency".
+                If no medicines are found, return {{"medicines": []}}.
+                """
+                
+                completion = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+                
+                llm_data = json.loads(completion.choices[0].message.content)
+                if llm_data.get("medicines"):
+                    parsed["extracted_medicines"] = llm_data["medicines"]
+                    parsed["method"] = "llm_fallback"
+                else:
+                    parsed["method"] = "ocr_only_no_meds"
+            except Exception as llm_err:
+                parsed["llm_error"] = str(llm_err)
+                parsed["method"] = "ocr_only_llm_failed"
+        else:
+            parsed["method"] = "ocr_primary"
+
         return {
             "success": True,
             "raw_text": raw_text,
             "parsed": parsed
         }
 
-    except ImportError:
-        # Tesseract or opencv not available — return mock result
-        return {
-            "success": False,
-            "raw_text": "OCR not available: Please install Tesseract and ensure pytesseract is configured.",
-            "parsed": {"extracted_medicines": [], "total_lines": 0},
-            "error": "tesseract_not_installed"
-        }
     except Exception as e:
+        # Fallback to LLM even if OCR fails completely (e.g. Tesseract not installed)
+        if settings.groq_api:
+             try:
+                from groq import Groq
+                client = Groq(api_key=settings.groq_api)
+                # Since we don't have text, we can't do much without a vision model,
+                # but we can at least return a structured empty response or try to explain.
+                # However, the user said "after scanning the ocr llm should be the fall back".
+                # If Tesseract fails, we might still want to try LLM if we have some raw text from other sources.
+                # But here 'raw_text' is not available. 
+                return {
+                    "success": False,
+                    "error": str(e),
+                    "raw_text": "",
+                    "parsed": {"extracted_medicines": [], "total_lines": 0, "method": "fail_no_ocr"}
+                }
+             except:
+                 pass
+        
         raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")

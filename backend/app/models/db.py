@@ -26,6 +26,7 @@ class Patient(Base):
     patient_name = Column(String(255), nullable=False)
     age = Column(Integer, nullable=True)
     relation = Column(String(255), nullable=True)
+    email = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="patients")

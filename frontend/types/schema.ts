@@ -4,6 +4,7 @@ export interface Patient {
     patient_name: string;
     age: number | null;
     relation: string | null;
+    email: string | null;
     created_at: string;
 }
 

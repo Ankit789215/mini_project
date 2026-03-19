@@ -18,7 +18,7 @@ class LogCreate(BaseModel):
 
 @router.post("/log")
 def log_dose(data: LogCreate, db: Session = Depends(get_db), user=Depends(verify_jwt)):
-    patient = db.query(Patient).filter(Patient.id == data.patient_id, Patient.user_id == user["sub"]).first()
+    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["user_id"]).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
@@ -40,7 +40,7 @@ def log_dose(data: LogCreate, db: Session = Depends(get_db), user=Depends(verify
 
 @router.get("/weekly/{patient_id}")
 def weekly_report(patient_id: str, db: Session = Depends(get_db), user=Depends(verify_jwt)):
-    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["sub"]).first()
+    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["user_id"]).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
@@ -87,7 +87,7 @@ def weekly_report(patient_id: str, db: Session = Depends(get_db), user=Depends(v
 @router.get("/ai-summary/{patient_id}")
 def ai_summary(patient_id: str, db: Session = Depends(get_db), user=Depends(verify_jwt)):
     """Generate an AI-powered weekly health summary using Groq llama-3.1-8b-instant."""
-    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["sub"]).first()
+    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == user["user_id"]).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 

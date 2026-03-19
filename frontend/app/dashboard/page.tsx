@@ -18,6 +18,7 @@ export default function DashboardOverview() {
     const [newName, setNewName] = useState("");
     const [newAge, setNewAge] = useState("");
     const [newRelation, setNewRelation] = useState("");
+    const [newEmail, setNewEmail] = useState("");
 
     const loadPatients = useCallback(async (reset = false, currentOffset = 0) => {
         try {
@@ -50,10 +51,12 @@ export default function DashboardOverview() {
                 patient_name: newName.trim(),
                 age: newAge ? parseInt(newAge) : undefined,
                 relation: newRelation.trim() || undefined,
+                email: newEmail.trim() || undefined,
             });
             setNewName("");
             setNewAge("");
             setNewRelation("");
+            setNewEmail("");
             setIsAdding(false);
             loadPatients(true, 0);
         } catch (err) {
@@ -127,6 +130,16 @@ export default function DashboardOverview() {
                             placeholder="e.g. Self, Parent"
                         />
                     </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Email (Optional)</label>
+                        <input
+                            type="email"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                            placeholder="e.g. patient@example.com"
+                        />
+                    </div>
                     <div className="flex items-end gap-2">
                         <button type="submit" className="w-full h-10 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition">
                             Save
@@ -172,8 +185,10 @@ export default function DashboardOverview() {
                             </h3>
                             <div className="text-sm text-slate-500 space-x-2">
                                 {p.relation && <span>{p.relation}</span>}
-                                {p.relation && p.age && <span>•</span>}
+                                {p.relation && (p.age || p.email) && <span>•</span>}
                                 {p.age && <span>{p.age} years old</span>}
+                                {p.age && p.email && <span>•</span>}
+                                {p.email && <span className="truncate block mt-1 text-xs">{p.email}</span>}
                             </div>
                             <div className="mt-6 pt-4 border-t border-slate-100 flex items-center text-emerald-600 font-medium text-sm group-hover:gap-2 transition-all">
                                 Manage Profile <ArrowRight size={16} className="ml-1" />
