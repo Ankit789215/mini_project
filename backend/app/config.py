@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     FRONTEND_ORIGIN: str = "http://localhost:3000"
     groq_api: str = ""
+    gemini_api: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

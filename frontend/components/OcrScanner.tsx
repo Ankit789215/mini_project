@@ -85,7 +85,7 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
                 setDone(true);
                 onExtracted?.(combinedText);
             } else {
-                setError(data.error || "OCR failed. Please check if Tesseract/PaddleOCR is working.");
+                setError(data.error || "AI could not extract data from the image. Please try a clearer photo.");
             }
         } catch {
             setError("Failed to process image. Please try again.");
@@ -146,7 +146,7 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">
                 <ScanLine className="text-violet-500" size={22} />
-                <h2 className="text-lg font-bold text-slate-800">Prescription Scanner (OCR)</h2>
+                <h2 className="text-lg font-bold text-slate-800">Prescription Scanner (AI)</h2>
             </div>
 
             {/* Drop Zone */}
@@ -173,7 +173,7 @@ export default function OcrScanner({ patientId, onMedicinesAdded, onExtracted }:
             {loading && (
                 <div className="flex items-center gap-2 text-violet-600 text-sm mb-3">
                     <Loader2 size={16} className="animate-spin" />
-                    Processing image with OCR...
+                    Analyzing prescription with AI... this may take a few seconds.
                 </div>
             )}
 
