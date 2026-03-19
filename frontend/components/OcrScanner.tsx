@@ -21,11 +21,14 @@ export default function OcrScanner({ onExtracted }: Props) {
     const [loading, setLoading] = useState(false);
     const [done, setDone] = useState(false);
     const [error, setError] = useState("");
+    const [dragging, setDragging] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const processFile = async (file: File) => {
+        if (!file.type.startsWith("image/")) {
+            setError("Only image files are supported (JPG, PNG, WEBP).");
+            return;
+        }
         setLoading(true);
         setDone(false);
         setError("");
@@ -58,6 +61,20 @@ export default function OcrScanner({ onExtracted }: Props) {
         }
     };
 
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) processFile(file);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setDragging(true); };
+    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setDragging(false); };
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) processFile(file);
+    };
+
     return (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -66,11 +83,21 @@ export default function OcrScanner({ onExtracted }: Props) {
             </div>
 
             <div
-                className="border-2 border-dashed border-violet-200 rounded-xl p-6 text-center cursor-pointer hover:border-violet-400 hover:bg-violet-50 transition-colors mb-4"
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all mb-4 ${
+                    dragging
+                        ? "border-violet-500 bg-violet-100 scale-[1.01]"
+                        : "border-violet-200 hover:border-violet-400 hover:bg-violet-50"
+                }`}
                 onClick={() => fileRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
             >
-                <Upload className="mx-auto text-violet-400 mb-2" size={28} />
-                <p className="text-sm font-medium text-slate-600">Click to upload a prescription image</p>
+                <Upload className={`mx-auto mb-2 transition-colors ${dragging ? "text-violet-600" : "text-violet-400"}`} size={28} />
+                <p className="text-sm font-medium text-slate-600">
+                    {dragging ? "Drop your prescription here!" : "Drag & drop or click to upload"}
+                </p>
                 <p className="text-xs text-slate-400 mt-1">JPG, PNG, WEBP supported</p>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
             </div>
