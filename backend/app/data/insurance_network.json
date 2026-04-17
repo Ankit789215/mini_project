@@ -1,0 +1,87 @@
+[
+  {"hospital_name": "Apollo Hospitals Mumbai", "city": "Mumbai", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Apollo Hospitals Mumbai", "city": "Mumbai", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Apollo Hospitals Mumbai", "city": "Mumbai", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Apollo Hospitals Mumbai", "city": "Mumbai", "insurance_company": "Bajaj Allianz", "cashless_available": false},
+  {"hospital_name": "Apollo Hospitals Mumbai", "city": "Mumbai", "insurance_company": "New India Assurance", "cashless_available": true},
+
+  {"hospital_name": "Apollo Hospitals Delhi", "city": "Delhi", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Apollo Hospitals Delhi", "city": "Delhi", "insurance_company": "Tata AIG", "cashless_available": true},
+  {"hospital_name": "Apollo Hospitals Delhi", "city": "Delhi", "insurance_company": "Care Health Insurance", "cashless_available": true},
+  {"hospital_name": "Apollo Hospitals Delhi", "city": "Delhi", "insurance_company": "United India Insurance", "cashless_available": false},
+  {"hospital_name": "Apollo Hospitals Delhi", "city": "Delhi", "insurance_company": "Oriental Insurance", "cashless_available": true},
+
+  {"hospital_name": "Fortis Hospital Bangalore", "city": "Bangalore", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Fortis Hospital Bangalore", "city": "Bangalore", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Fortis Hospital Bangalore", "city": "Bangalore", "insurance_company": "HDFC ERGO", "cashless_available": false},
+  {"hospital_name": "Fortis Hospital Bangalore", "city": "Bangalore", "insurance_company": "Bajaj Allianz", "cashless_available": true},
+  {"hospital_name": "Fortis Hospital Bangalore", "city": "Bangalore", "insurance_company": "Reliance Health Insurance", "cashless_available": true},
+
+  {"hospital_name": "Fortis Hospital Gurgaon", "city": "Gurgaon", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Fortis Hospital Gurgaon", "city": "Gurgaon", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Fortis Hospital Gurgaon", "city": "Gurgaon", "insurance_company": "Tata AIG", "cashless_available": true},
+  {"hospital_name": "Fortis Hospital Gurgaon", "city": "Gurgaon", "insurance_company": "New India Assurance", "cashless_available": false},
+
+  {"hospital_name": "Lilavati Hospital Mumbai", "city": "Mumbai", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Lilavati Hospital Mumbai", "city": "Mumbai", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Lilavati Hospital Mumbai", "city": "Mumbai", "insurance_company": "Bajaj Allianz", "cashless_available": true},
+  {"hospital_name": "Lilavati Hospital Mumbai", "city": "Mumbai", "insurance_company": "Care Health Insurance", "cashless_available": false},
+  {"hospital_name": "Lilavati Hospital Mumbai", "city": "Mumbai", "insurance_company": "ICICI Lombard", "cashless_available": true},
+
+  {"hospital_name": "Narayana Health Bangalore", "city": "Bangalore", "insurance_company": "Bajaj Allianz", "cashless_available": true},
+  {"hospital_name": "Narayana Health Bangalore", "city": "Bangalore", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Narayana Health Bangalore", "city": "Bangalore", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Narayana Health Bangalore", "city": "Bangalore", "insurance_company": "United India Insurance", "cashless_available": true},
+
+  {"hospital_name": "Medanta The Medicity Gurgaon", "city": "Gurgaon", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Medanta The Medicity Gurgaon", "city": "Gurgaon", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Medanta The Medicity Gurgaon", "city": "Gurgaon", "insurance_company": "Tata AIG", "cashless_available": true},
+  {"hospital_name": "Medanta The Medicity Gurgaon", "city": "Gurgaon", "insurance_company": "Care Health Insurance", "cashless_available": true},
+  {"hospital_name": "Medanta The Medicity Gurgaon", "city": "Gurgaon", "insurance_company": "New India Assurance", "cashless_available": false},
+
+  {"hospital_name": "Max Super Speciality Hospital Delhi", "city": "Delhi", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Max Super Speciality Hospital Delhi", "city": "Delhi", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Max Super Speciality Hospital Delhi", "city": "Delhi", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Max Super Speciality Hospital Delhi", "city": "Delhi", "insurance_company": "Bajaj Allianz", "cashless_available": false},
+
+  {"hospital_name": "Aster CMI Hospital Bangalore", "city": "Bangalore", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Aster CMI Hospital Bangalore", "city": "Bangalore", "insurance_company": "Reliance Health Insurance", "cashless_available": true},
+  {"hospital_name": "Aster CMI Hospital Bangalore", "city": "Bangalore", "insurance_company": "Care Health Insurance", "cashless_available": true},
+  {"hospital_name": "Aster CMI Hospital Bangalore", "city": "Bangalore", "insurance_company": "United India Insurance", "cashless_available": false},
+
+  {"hospital_name": "Kokilaben Dhirubhai Ambani Hospital Mumbai", "city": "Mumbai", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Kokilaben Dhirubhai Ambani Hospital Mumbai", "city": "Mumbai", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Kokilaben Dhirubhai Ambani Hospital Mumbai", "city": "Mumbai", "insurance_company": "Tata AIG", "cashless_available": true},
+  {"hospital_name": "Kokilaben Dhirubhai Ambani Hospital Mumbai", "city": "Mumbai", "insurance_company": "Bajaj Allianz", "cashless_available": false},
+
+  {"hospital_name": "AIIMS Delhi", "city": "Delhi", "insurance_company": "New India Assurance", "cashless_available": true},
+  {"hospital_name": "AIIMS Delhi", "city": "Delhi", "insurance_company": "United India Insurance", "cashless_available": true},
+  {"hospital_name": "AIIMS Delhi", "city": "Delhi", "insurance_company": "Oriental Insurance", "cashless_available": true},
+  {"hospital_name": "AIIMS Delhi", "city": "Delhi", "insurance_company": "HDFC ERGO", "cashless_available": false},
+
+  {"hospital_name": "Breach Candy Hospital Mumbai", "city": "Mumbai", "insurance_company": "Tata AIG", "cashless_available": true},
+  {"hospital_name": "Breach Candy Hospital Mumbai", "city": "Mumbai", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Breach Candy Hospital Mumbai", "city": "Mumbai", "insurance_company": "Care Health Insurance", "cashless_available": false},
+
+  {"hospital_name": "Manipal Hospital Bangalore", "city": "Bangalore", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Manipal Hospital Bangalore", "city": "Bangalore", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Manipal Hospital Bangalore", "city": "Bangalore", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Manipal Hospital Bangalore", "city": "Bangalore", "insurance_company": "Reliance Health Insurance", "cashless_available": false},
+
+  {"hospital_name": "Ruby Hall Clinic Pune", "city": "Pune", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Ruby Hall Clinic Pune", "city": "Pune", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "Ruby Hall Clinic Pune", "city": "Pune", "insurance_company": "Bajaj Allianz", "cashless_available": true},
+
+  {"hospital_name": "Global Hospital Chennai", "city": "Chennai", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Global Hospital Chennai", "city": "Chennai", "insurance_company": "ICICI Lombard", "cashless_available": true},
+  {"hospital_name": "Global Hospital Chennai", "city": "Chennai", "insurance_company": "United India Insurance", "cashless_available": true},
+
+  {"hospital_name": "KIMS Hospital Hyderabad", "city": "Hyderabad", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "KIMS Hospital Hyderabad", "city": "Hyderabad", "insurance_company": "HDFC ERGO", "cashless_available": true},
+  {"hospital_name": "KIMS Hospital Hyderabad", "city": "Hyderabad", "insurance_company": "Bajaj Allianz", "cashless_available": false},
+  {"hospital_name": "KIMS Hospital Hyderabad", "city": "Hyderabad", "insurance_company": "Care Health Insurance", "cashless_available": true},
+
+  {"hospital_name": "Wockhardt Hospital Mumbai", "city": "Mumbai", "insurance_company": "ICICI Lombard", "cashless_available": false},
+  {"hospital_name": "Wockhardt Hospital Mumbai", "city": "Mumbai", "insurance_company": "Star Health", "cashless_available": true},
+  {"hospital_name": "Wockhardt Hospital Mumbai", "city": "Mumbai", "insurance_company": "Tata AIG", "cashless_available": true}
+]

@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -5,8 +7,34 @@ from typing import Optional
 from app.database import get_db
 from app.models.db import InsuranceDetail, Patient
 from app.middleware.auth import verify_jwt
+from app.services.insurance_matcher import matcher
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/insurance", tags=["Insurance"])
+
+
+# ---------------------------------------------------------------------------
+# Real-Time Health Insurance Validation
+# ---------------------------------------------------------------------------
+
+@router.get("/check-insurance", summary="Real-Time Cashless Insurance Check")
+async def check_insurance(hospital: str, insurance: str):
+    """
+    Check whether a given hospital-insurance pair supports cashless treatment.
+
+    - **hospital**: Name of the hospital (partial/colloquial names supported via fuzzy match)
+    - **insurance**: Name of the insurance company (partial names supported)
+
+    Returns `YES` if cashless is available, `NO` otherwise.
+    Includes normalized names, confidence scores, and suggestions if not found.
+    """
+    logger.info(f"check-insurance called: hospital='{hospital}', insurance='{insurance}'")
+
+    # Artificial delay to simulate a real external API call
+    await asyncio.sleep(1.5)
+
+    result = matcher.check_insurance(hospital_query=hospital, insurance_query=insurance)
+    return result
 
 # Mock hospital-insurance network mapping
 # Format: {insurance_company_lower: [list of partnered hospital names (lowercase)]}
